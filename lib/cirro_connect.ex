@@ -9,22 +9,28 @@ defmodule CirroConnect do
   @timeout 60_000
   @protocol_default "wss://"
   @query_path "/websockets/query"
-  @valid_options [:name, :fetchsize, :delimiter, :multi, :user, :password, :password_encrypted, :event_type, :session_id, :systems, :period]
 
-  @doc "Connect to Cirro"
-  def connect(url, user, password, options \\ []) do
+  @doc """
+    Connect to Cirro.
+    Standard connect_options are :name, :fetchsize, :delimiter, :multi, :user, :password, :password_encrypted, :event_type, :session_id, :systems, :period
+  """
+  def connect(url, user, password) do
+    connect(url, user, password, %{})
+  end
+  def connect(url, user, password, connect_options, websock_options \\ []) do
     Register.start()
-    opts = Keyword.merge(options, [{:server_name_indication, :disable}])
-
-    case WebSockex.start_link(finalize_url(url), __MODULE__, :ok, opts) do
-      {:ok, wsconn} -> finalize_connection(wsconn, user, password)
+    case WebSockex.start_link(finalize_url(url), __MODULE__, :ok, Keyword.merge(websock_options, [{:server_name_indication, :disable}])) do
+      {:ok, wsconn} -> finalize_connection(wsconn, user, password, connect_options)
       {:error, error} -> {:error, error}
     end
   end
 
-  @doc "Connect to Cirro and return a pipeable connection"
-  def connect!(url, user, password) do
-    {:ok, state} = connect(url, user, password)
+  @doc """
+    Connect to Cirro and return a pipeable connection.
+    Standard connect_options are :name, :fetchsize, :delimiter, :multi, :user, :password, :password_encrypted, :event_type, :session_id, :systems, :period
+  """
+  def connect!(url, user, password, connect_options \\ %{}) do
+    {:ok, state} = connect(url, user, password, connect_options)
     state
   end
 
@@ -198,8 +204,8 @@ defmodule CirroConnect do
     prefix <> @query_path
   end
 
-  defp finalize_connection(wsconn, user, password) do
-    case authenticate(wsconn, user, password) do
+  defp finalize_connection(wsconn, user, password, connect_options) do
+    case authenticate(wsconn, user, password, connect_options) do
       :ok ->
         receive do
           {:cirro_connect, %{"error" => true, "message" => error_message}} -> {:error, error_message}
@@ -220,7 +226,6 @@ defmodule CirroConnect do
              command: calltype,
              statement: to_string(query),
              options: options
-                      |> Map.take(@valid_options)
            },
            self()
          ) do
@@ -238,7 +243,6 @@ defmodule CirroConnect do
              command: calltype,
              statement: to_string(query),
              options: options
-                      |> Map.take(@valid_options)
            },
            recipient
          ) do
@@ -247,13 +251,19 @@ defmodule CirroConnect do
     end
   end
 
-  defp authenticate(wsconn, user, password) do
+  defp authenticate(wsconn, user, password, connect_options) do
     wssend(
       wsconn,
       %{
         id: Register.next_id(),
         command: "authenticate",
-        options: %{ user: user, password_encrypted: :base64.encode(password) },
+        options: Map.merge(
+          connect_options,
+          %{
+            user: user,
+            password_encrypted: :base64.encode(password)
+          }
+        ),
       },
       self()
     )
