@@ -6,7 +6,7 @@ defmodule CirroConnect do
 
   @moduledoc "Cirro WebSocket-based SQL connector - Copyright Cirro Inc, 2018"
 
-  @timeout 60_000
+  @timeout 300_000
   @protocol_default "wss://"
   @query_path "/websockets/query"
 
@@ -210,8 +210,6 @@ defmodule CirroConnect do
         receive do
           {:cirro_connect, %{"error" => true, "message" => error_message}} -> {:error, error_message}
           {:cirro_connect, %{"error" => false} = response} -> {:ok, {wsconn, response["task"]["authtoken"]}}
-        after
-          @timeout -> {:error, "Timed out waiting for authentication response"}
         end
       error -> error
     end
