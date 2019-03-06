@@ -27,7 +27,7 @@ defmodule CirroConnect.Mixfile do
     [
       {:websockex, "~> 0.4.0"},
       {:poison, ">= 1.5.0"},
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, "~> 0.19", only: :dev}
     ]
   end
 

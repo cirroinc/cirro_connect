@@ -11,7 +11,7 @@ Add the following to `mix.exs` to include it in your project:
 ```elixir
 def deps do
   [
-    {:cirro_connect, ">= 0.1.5"},
+    {:cirro_connect, ">= 0.1.9"},
   ]
 end
 ```
