@@ -81,6 +81,11 @@ defmodule CirroConnect do
     {:ok, id}
   end
 
+  @doc "Ping the connection"
+  def ping({wsconn, authtoken}, recipient \\ nil) do
+    dispatch(:ping, wsconn, authtoken, Register.next_id(), nil, %{}, recipient)
+  end
+
   @doc "Close a named connection"
   def close({wsconn, authtoken}, %{name: name}) do
     wssend(
