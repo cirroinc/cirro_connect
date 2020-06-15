@@ -279,14 +279,14 @@ defmodule CirroConnect do
   defp wssend(wsconn, message, recipient) do
     case Process.alive?(wsconn) do
       true -> Register.put(message.id, recipient)
-              WebSockex.send_frame(wsconn, {:text, Poison.encode! message})
+              WebSockex.send_frame(wsconn, {:text, Jason.encode! message})
               :ok
       false -> {:error, "Invalid Cirro connection"}
     end
   end
 
   def handle_frame({:text, text}, state) do
-    response = Poison.decode! text
+    response = Jason.decode! text
     id = response["task"]["id"]
     case Register.get(id) do
       {:ok, caller} -> respond(id, caller, response)

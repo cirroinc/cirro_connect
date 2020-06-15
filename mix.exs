@@ -26,7 +26,7 @@ defmodule CirroConnect.Mixfile do
   defp deps do
     [
       {:websockex, "~> 0.4.0"},
-      {:poison, ">= 1.5.0"},
+      {:jason, ">= 1.2.1"},
       {:ex_doc, "~> 0.19", only: :dev}
     ]
   end
