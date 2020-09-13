@@ -15,7 +15,7 @@ defmodule CirroConnect.MessageRegister do
   end
 
   def put(message_id, listener) do
-    GenServer.cast(:cirro_message_register, {:put, message_id, listener})
+    GenServer.call(:cirro_message_register, {:put, message_id, listener})
   end
 
   def delete(message_id) do
@@ -35,8 +35,8 @@ defmodule CirroConnect.MessageRegister do
     {:reply, Map.fetch(map, name), map}
   end
 
-  def handle_cast({:put, message_id, listener}, map) do
-    {:noreply, Map.put(map, message_id, listener)}
+  def handle_call({:put, message_id, listener}, _from, map) do
+    {:reply, :ok, Map.put(map, message_id, listener)}
   end
 
   def handle_cast({:delete, message_id}, map) do
