@@ -17,12 +17,20 @@ defmodule CirroConnect do
   def connect(url, user, password) do
     connect(url, user, password, %{})
   end
+
   def connect(url, user, password, connect_options, websock_options \\ []) do
     Register.start()
-    case WebSockex.start_link(finalize_url(url), __MODULE__, :ok, Keyword.merge(websock_options, [{:server_name_indication, :disable}])) do
-      {:ok, wsconn} -> finalize_connection(wsconn, user, password, connect_options)
-      {:error, error} -> {:error, error}
-    end
+    sock = case connect_options[:link] do
+             false -> WebSockex.start(finalize_url(url), __MODULE__, :ok, Keyword.merge(websock_options, [{:server_name_indication, :disable}]))
+             _ -> WebSockex.start_link(finalize_url(url), __MODULE__, :ok, Keyword.merge(websock_options, [{:server_name_indication, :disable}]))
+           end
+
+    result = case sock do
+               {:ok, wsconn} -> finalize_connection(wsconn, user, password, connect_options |> Map.drop([:link]))
+               {:error, error} -> {:error, error}
+             end
+
+    result
   end
 
   @doc """
@@ -210,14 +218,22 @@ defmodule CirroConnect do
   end
 
   defp finalize_connection(wsconn, user, password, connect_options) do
-    case authenticate(wsconn, user, password, connect_options) do
-      :ok ->
-        receive do
-          {:cirro_connect, %{"error" => true, "message" => error_message}} -> {:error, error_message}
-          {:cirro_connect, %{"error" => false} = response} -> {:ok, {wsconn, response["task"]["authtoken"]}}
-        end
-      error -> error
-    end
+    t = authenticate(wsconn, user, password, connect_options)
+
+    result = case t do
+               :ok ->
+                 receive do
+                   {:cirro_connect, msg} ->
+                     case msg do
+                       %{"error" => true, "message" => error_message} -> {:error, error_message}
+                       %{"error" => false} = response -> {:ok, {wsconn, response["task"]["authtoken"]}}
+                       msg -> msg
+                     end
+                 end
+               error -> error
+             end
+
+    result
   end
 
   defp dispatch(calltype, wsconn, authtoken, id, query, options, recipient) when is_nil(recipient) do
